@@ -15,8 +15,8 @@ PELX_type(result) result = PELX_func(decode_pelx)("texture.pelx", &pelx_file); /
 
 PELX_type(palette_entry) entries[] =
 {
-{ 0xFF, 0x00, 0x00, 0xFF },
-{ 0x00, 0xFF, 0x00, 0xFF }
+	{ 0xFF, 0x00, 0x00, 0xFF },
+	{ 0x00, 0xFF, 0x00, 0xFF }
 };
 
 result = PELX_func(encode_png)("texture_mod.png", pelx_file, 2, entries, 4); // encode as PNG
