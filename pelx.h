@@ -438,21 +438,13 @@ PELX_def PELX_type(result) PELX_func(to_png)(PELX_type(file) *pelx_data,
 
 PELX_def PELX_type(result) PELX_func(decode_pelx)(const char *file, PELX_type(file) *pelx)
 {
-	FILE *fp = NULL;
-	size_t read_bytes = 0;
-
-	if (file == NULL || pelx == NULL)
+	FILE *fp = fopen(file, "rb");
+	if (fp == NULL || pelx == NULL)
 	{
 		return PELX_enum(io_error);
 	}
 
-	fp = fopen(file, "rb");
-	if (fp == NULL)
-	{
-		return PELX_enum(io_error);
-	}
-
-	PELX_type(file) pelx_file = (PELX_type(file))malloc(sizeof(PELX_type(file_data)));
+	PELX_type(file_data) *pelx_file = (PELX_type(file_data) *)malloc(sizeof(PELX_type(file_data)));
 	if (pelx_file == NULL)
 	{
 		fclose(fp);
@@ -461,42 +453,69 @@ PELX_def PELX_type(result) PELX_func(decode_pelx)(const char *file, PELX_type(fi
 
 	memset(pelx_file, 0, sizeof(PELX_type(file_data)));
 
-	read_bytes = fread(&pelx_file->header, 1, sizeof(PELX_type(header)), fp);
-	if (read_bytes != sizeof(PELX_type(header)))
+	// Read magic PELX\0 (5 bytes)
+	if (fread(pelx_file->header.magic, 1, 5, fp) != 5)
 	{
-		PELX_func(free_file)(&pelx_file);
-		fclose(fp);
-		return PELX_enum(invalid_data_format);
+		goto return_failure;
 	}
 
-	PELX_type(result) result = PELX_func(sanitize_header)(&pelx_file->header);
-	if (result != PELX_enum(success))
+	// Read header size: 4 bytes
+	if (PELX_func(read_uint32)(fp, &pelx_file->header.header_size) < 0)
 	{
-		PELX_func(free_file)(&pelx_file);
-		fclose(fp);
-		return result;
+		goto return_failure;
+	}
+
+	// Read palette offset: 4 bytes
+	if (PELX_func(read_uint32)(fp, &pelx_file->header.palette_offset) < 0)
+	{
+		goto return_failure;
+	}
+	
+	// Read width: 2 bytes
+	if (PELX_func(read_uint16)(fp, &pelx_file->header.width) < 0)
+	{
+		goto return_failure;
+	}
+
+	// Read height: 2 bytes
+	if (PELX_func(read_uint16)(fp, &pelx_file->header.height) < 0)
+	{
+		goto return_failure;
+	}
+	
+	// Read palette channels: 1 byte
+	if (PELX_func(read_uint8)(fp, &pelx_file->header.palette_channel_count) < 0)
+	{
+		goto return_failure;
+	}
+
+	// Read true channels: 1 byte
+	if (PELX_func(read_uint8)(fp, &pelx_file->header.true_channel_count) < 0)
+	{
+		goto return_failure;
+	}
+	
+	// Read palette count: 1 byte
+	if (PELX_func(read_uint16)(fp, &pelx_file->header.palette_count) < 0)
+	{
+		goto return_failure;
+	}
+
+	// Read reserved: 5 bytes
+	if (fread(pelx_file->header.reserved, 1, 5, fp) != 5)
+	{
+		goto return_failure;
 	}
 
 	if (fseek(fp, 0, SEEK_END) != 0)
 	{
-		PELX_func(free_file)(&pelx_file);
-		fclose(fp);
-		return PELX_enum(invalid_data_format);
+		goto return_failure;
 	}
 
 	long file_size = ftell(fp);
-	if (file_size < 0)
+	if (file_size < 0 || pelx_file->header.header_size > (uint32_t)file_size)
 	{
-		PELX_func(free_file)(&pelx_file);
-		fclose(fp);
-		return PELX_enum(io_error);
-	}
-
-	if (pelx_file->header.header_size > (uint32_t)file_size)
-	{
-		PELX_func(free_file)(&pelx_file);
-		fclose(fp);
-		return PELX_enum(invalid_data_format);
+		goto return_failure;
 	}
 
 	size_t raw_data_size = (size_t)file_size - pelx_file->header.header_size;
@@ -504,31 +523,31 @@ PELX_def PELX_type(result) PELX_func(decode_pelx)(const char *file, PELX_type(fi
 	pelx_file->body.data = (uint8_t *)malloc(raw_data_size);
 	if (pelx_file->body.data == NULL)
 	{
-		PELX_func(free_file)(&pelx_file);
-		fclose(fp);
-		return PELX_enum(memory_allocation_failed);
+		goto return_failure;
 	}
+
 	pelx_file->body.size = (uint16_t)raw_data_size;
 
 	if (fseek(fp, pelx_file->header.header_size, SEEK_SET) != 0)
 	{
-		PELX_func(free_file)(&pelx_file);
-		fclose(fp);
-		return PELX_enum(io_error);
+		goto return_failure;
 	}
 
-	read_bytes = fread(pelx_file->body.data, 1, raw_data_size, fp);
-	if (read_bytes != raw_data_size)
+	// Read body data
+	if (fread(pelx_file->body.data, 1, raw_data_size, fp) != raw_data_size)
 	{
-		PELX_func(free_file)(&pelx_file);
-		fclose(fp);
-		return PELX_enum(invalid_data_format);
+		goto return_failure;
 	}
 
 	fclose(fp);
-
 	*pelx = pelx_file;
 	return PELX_enum(success);
+
+return_failure:
+	free(pelx_file->body.data);
+	free(pelx_file);
+	fclose(fp);
+	return PELX_enum(invalid_data_format);
 }
 
 PELX_def PELX_type(result) PELX_func(decode_png)(const char *file,
