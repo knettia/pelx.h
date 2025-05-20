@@ -556,32 +556,40 @@ PELX_def PELX_type(result) PELX_func(decode_png)(const char *file,
 
 PELX_def PELX_type(result) PELX_func(encode_pelx)(const char *file, PELX_type(file_data) *input_data)
 {
-	FILE *fp = NULL;
-	size_t written_bytes = 0;
-
-	if (file == NULL || input_data == NULL)
+	FILE *fp = fopen(file, "wb");
+	if (fp == NULL || input_data == NULL)
 	{
 		return PELX_enum(io_error);
 	}
 
-	fp = fopen(file, "wb");
-	if (fp == NULL)
+	// Write magic (5 bytes)
+	if (fwrite(input_data->header.magic, 1, 5, fp) != 5)
 	{
+		fclose(fp);
 		return PELX_enum(io_error);
 	}
 
-	written_bytes = fwrite(&input_data->header, 1, sizeof(PELX_type(header)), fp);
-	if (written_bytes != sizeof(PELX_type(header)))
+	PELX_func(write_uint32)(fp, input_data->header.header_size);
+	PELX_func(write_uint32)(fp, input_data->header.palette_offset);
+
+	PELX_func(write_uint16)(fp, input_data->header.width);
+	PELX_func(write_uint16)(fp, input_data->header.height);
+
+	PELX_func(write_uint8)(fp, input_data->header.palette_channel_count);
+	PELX_func(write_uint8)(fp, input_data->header.true_channel_count);
+
+	PELX_func(write_uint16)(fp, input_data->header.palette_count);
+
+	if (fwrite(input_data->header.reserved, 1, 5, fp) != 5)
 	{
 		fclose(fp);
-		return PELX_enum(invalid_data_format);
+		return PELX_enum(io_error);
 	}
 
-	written_bytes = fwrite(input_data->body.data, 1, input_data->body.size, fp);
-	if (written_bytes != input_data->body.size)
+	if (fwrite(input_data->body.data, 1, input_data->body.size, fp) != input_data->body.size)
 	{
 		fclose(fp);
-		return PELX_enum(invalid_data_format);
+		return PELX_enum(io_error);
 	}
 
 	fclose(fp);
