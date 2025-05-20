@@ -43,8 +43,8 @@ static PELX_type(file) create_makeshift_data(void)
 
 int main(void)
 {
-	int _ = mkdir("mushrooms", 0777);
 	// if on Windows, you will have to replace this with _mkdir("mushrooms") from direct.h
+	int _ = mkdir("mushrooms", 0777);
 
 	PELX_type(result) result;
 
