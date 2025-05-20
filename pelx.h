@@ -173,6 +173,32 @@ PELX_def PELX_type(result) PELX_func(encode_png)(const char *file, PELX_type(fil
 // Implementation
 #if defined (PELX_with_implementation)
 
+// Writes a uint8 to a file (big-endianess)
+static void write_uint8(FILE *fp, uint8_t value)
+{
+	fwrite(&value, 1, 1, fp);
+}
+
+// Writes a uint16 to a file (big-endianess)
+static void write_uint16_be(FILE *fp, uint16_t value)
+{
+	uint8_t buf[2];
+	buf[0] = (value >> 8) & 0xFF;
+	buf[1] = value & 0xFF;
+	fwrite(buf, 1, 2, fp);
+}
+
+// Writes a uint32 to a file (big-endianess)
+static void write_uint32_be(FILE *fp, uint32_t value)
+{
+	uint8_t buf[4];
+	buf[0] = (value >> 24) & 0xFF;
+	buf[1] = (value >> 16) & 0xFF;
+	buf[2] = (value >> 8) & 0xFF;
+	buf[3] = value & 0xFF;
+	fwrite(buf, 1, 4, fp);
+}
+
 // If the following definitions create problems, you can remove them and handle STBIW yourself
 #define STB_IMAGE_WRITE_IMPLEMENTATION 1
 #include "stb_image_write.h"
