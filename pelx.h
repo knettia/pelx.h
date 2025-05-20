@@ -174,13 +174,13 @@ PELX_def PELX_type(result) PELX_func(encode_png)(const char *file, PELX_type(fil
 #if defined (PELX_with_implementation)
 
 // Writes a uint8 to a file (big-endianess)
-static void write_uint8(FILE *fp, uint8_t value)
+static void PELX_func(write_uint8)(FILE *fp, uint8_t value)
 {
 	fwrite(&value, 1, 1, fp);
 }
 
 // Writes a uint16 to a file (big-endianess)
-static void write_uint16_be(FILE *fp, uint16_t value)
+static void PELX_func(write_uint16)(FILE *fp, uint16_t value)
 {
 	uint8_t buf[2];
 	buf[0] = (value >> 8) & 0xFF;
@@ -189,7 +189,7 @@ static void write_uint16_be(FILE *fp, uint16_t value)
 }
 
 // Writes a uint32 to a file (big-endianess)
-static void write_uint32_be(FILE *fp, uint32_t value)
+static void PELX_func(write_uint32)(FILE *fp, uint32_t value)
 {
 	uint8_t buf[4];
 	buf[0] = (value >> 24) & 0xFF;
@@ -200,13 +200,13 @@ static void write_uint32_be(FILE *fp, uint32_t value)
 }
 
 // Reads a uint32 from a file (big-endianess)
-static int read_uint8(FILE *fp, uint8_t *value)
+static int PELX_func(read_uint8)(FILE *fp, uint8_t *value)
 {
 	return fread(value, 1, 1, fp) == 1 ? 0 : -1;
 }
 
 // Reads a uint32 from a file (big-endianess)
-static int read_uint16(FILE *fp, uint16_t *value)
+static int PELX_func(read_uint16)(FILE *fp, uint16_t *value)
 {
 	uint8_t buf[2];
 	if (fread(buf, 1, 2, fp) != 2)
@@ -219,7 +219,7 @@ static int read_uint16(FILE *fp, uint16_t *value)
 }
 
 // Reads a uint32 from a file (big-endianess)
-static int read_uint32(FILE *fp, uint32_t *value)
+static int PELX_func(read_uint32)(FILE *fp, uint32_t *value)
 {
 	uint8_t buf[4];
 	if (fread(buf, 1, 4, fp) != 4)
