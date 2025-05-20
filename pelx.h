@@ -199,6 +199,38 @@ static void write_uint32_be(FILE *fp, uint32_t value)
 	fwrite(buf, 1, 4, fp);
 }
 
+// Reads a uint32 from a file (big-endianess)
+static int read_uint8(FILE *fp, uint8_t *value)
+{
+	return fread(value, 1, 1, fp) == 1 ? 0 : -1;
+}
+
+// Reads a uint32 from a file (big-endianess)
+static int read_uint16(FILE *fp, uint16_t *value)
+{
+	uint8_t buf[2];
+	if (fread(buf, 1, 2, fp) != 2)
+	{
+		return -1;
+	}
+
+	*value = ((uint16_t)buf[0] << 8) | buf[1];
+	return 0;
+}
+
+// Reads a uint32 from a file (big-endianess)
+static int read_uint32(FILE *fp, uint32_t *value)
+{
+	uint8_t buf[4];
+	if (fread(buf, 1, 4, fp) != 4)
+	{
+		return -1;
+	}
+
+	*value = ((uint32_t)buf[0] << 24) | ((uint32_t)buf[1] << 16) | ((uint32_t)buf[2] << 8) | buf[3];
+	return 0;
+}
+
 // If the following definitions create problems, you can remove them and handle STBIW yourself
 #define STB_IMAGE_WRITE_IMPLEMENTATION 1
 #include "stb_image_write.h"
