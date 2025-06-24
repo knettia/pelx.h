@@ -2,6 +2,18 @@
 
 `pelx.h` is a mini library for decoding and encoding the PELX file format, a format used for storing images that make use of palettes for rendering.
 
+# Specification
+
+To view the specification of the PELX file format, you need to build it:
+
+Requirements:
+- `PDFLaTeX`
+
+```sh
+make all
+firefox spec/spec.pdf # to view it
+```
+
 # Demo
 
 A demo on how to use the library:
