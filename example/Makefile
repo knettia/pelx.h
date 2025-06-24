@@ -4,7 +4,7 @@ CFLAGS   := -std=c99 -Wall -Wextra \
             -I../dep \
             -DPELX_with_implementation
 
-TARGET   := mushrooms.bin
+TARGET   := mushrooms
 SRCS     := mushrooms.c
 OBJS     := $(SRCS:.c=.o)
 
