@@ -1,0 +1,129 @@
+\documentclass{article}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{array}
+\usepackage[margin=1in]{geometry}
+
+\title{Specification of the PELX 0.1.0 File Format}
+
+\author{A. C. Gäßler}
+
+\date{2025}
+
+\begin{document}
+
+\maketitle
+
+\section*{Abstract}
+
+The PELX format is an image encoding scheme which relies on indexed colour palettes and true colour data to display a countless amount of colour combinations after the file was initially stored.
+
+\section{Notation}
+
+Let:
+\begin{itemize}
+	\item $\mathbb{B} = \{0, 1\}$ denote the set of binary values.
+	\item $\mathbb{N}_k$ denote the set of unsigned integers representable in $k$ bits.
+	\item $\mathbb{B}_n$ denote a sequence of $n$ bits.
+	\item $[\![a, b]\!]$ denote the set of integers from $a$ to $b$, inclusive.
+\end{itemize}
+
+\section{PELX Header}
+
+The header $\mathcal{H} \in \mathbb{B}_{32 \times 8}$ consists of the following fields:
+
+\begin{align*}
+	\mathcal{H}_{\text{magic}} &\in (\mathbb{N}_8)5, &\text{must equal ASCII (``PELX\textbackslash0'')} \\
+	\mathcal{H}_{\text{header\_size}} &\in \mathbb{N}_{32} \\
+	\mathcal{H}_{\text{palette\_offset}} &\in \mathbb{N}_{32} \\
+	\mathcal{H}_{\text{width}}, \mathcal{H}_{\text{height}} &\in \mathbb{N}_{16}, &\text{must be } > 0 \\
+	\mathcal{H}_{\text{palette\_channel\_count}}, \mathcal{H}_{\text{true\_channel\_count}} &\in \{3, 4\} \\
+	\mathcal{H}_{\text{palette\_count}} &\in \mathbb{N}_{16}, &\text{must be } > 0 \\
+	\mathcal{H}_{\text{reserved}} &\in (\mathbb{N}_8)5
+\end{align*}
+
+\section{File Layout}
+
+Let $\mathcal{F}$ denote a PELX file. It is partitioned into:
+\[
+	\mathcal{F} = \underbrace{\mathcal{H}}_{\text{Header}} \quad \| \quad
+	\underbrace{\mathcal{P}}_{\text{Palette Definitions}} \quad \| \quad
+	\underbrace{\mathcal{D}}_{\text{Pixel Data}}
+\]
+
+where:
+\begin{itemize}
+	\item $\|\;$ denotes concatenation.
+	\item $\mathcal{P}$ begins at byte offset $\mathcal{H}_{\text{palette\_offset}}$.
+	\item $\mathcal{D}$ begins at byte offset $\mathcal{H}_{\text{header\_size}}$.
+\end{itemize}
+
+\section{Palette Entry}
+
+Each palette entry $p \in \mathcal{P}$ is defined as:
+\[
+	p = (r, g, b, a) \in (\mathbb{N}_8)c \quad \text{where } c = \mathcal{H}_{\text{palette\_channel\_count}} \in \{3, 4\}
+\]
+
+There are $\mathcal{H}_{\text{palette\_count}}$ such entries.
+
+\section{Pixel Data Encoding}
+
+Let $T$ be $\mathcal{H}_{\text{true\_channel\_count}} \in \{3, 4\}$
+
+Each pixel datum in $\mathcal{D}$ is of the form:
+\[
+	d \in \texttt{TaggedUnion} \in \{ \text{Void}, \text{True}, \text{Pale} \}
+\]
+
+With:
+\begin{align*}
+	\text{Void} &::= 0\text{x}00 \\
+	\text{True} &::= 0\text{x}01 \| (\mathbb{N}_8)T \\
+	\text{Pale} &::= 0\text{x}02 \| \mathbb{N}_8
+\end{align*}
+
+The semantics are:
+\begin{itemize}
+	\item Void: represents a fully transparent or black pixel (R=G=B=A=0).
+	\item True: followed by $T$ colour channels (RGB[A]) encoded inline.
+	\item Pale: followed by an index $i$ into the palette, with $i \in [\![0, \mathcal{H}_{\text{palette\_count}} - 1]\!]$.
+\end{itemize}
+
+\section{Validity}
+
+A valid PELX file must satisfy:
+
+\begin{itemize}
+	\item $\mathcal{H}_{\text{magic}} = \text{(`P', `E', `L', `X', `\textbackslash0')}$.
+	\item $\mathcal{H}_{\text{width}} > 0 \land \mathcal{H}_{\text{height}} > 0$.
+	\item $\mathcal{H}_{\text{true\_channel\_count}} \in \{3, 4\}$.
+	\item $\mathcal{H}_{\text{palette\_channel\_count}} \in \{3, 4\}$.
+	\item $\mathcal{H}_{\text{palette\_count}} > 0$.
+	\item All pixel data in $\mathcal{D}$ must decode to exactly $\mathcal{H}_{\text{width}} \times \mathcal{H}_{\text{height}}$ pixels.
+\end{itemize}
+
+\section{Summary}
+
+\begin{center}
+	\renewcommand{\arraystretch}{1.2}
+
+	\begin{tabular}{|c|l|}
+		\hline
+			Tag & Meaning \\
+		\hline
+			0x00 & Void pixel \\
+			0x01 & True colour pixel (inline RGB[A]) \\
+			0x02 & Palette pixel (index into palette block) \\
+		\hline
+	\end{tabular}
+
+\end{center}
+
+\section{Notes}
+
+Currently, the palette block $\mathcal{P}$ is not used, but reserved for future versions where it may be augmented to include named palettes or metadata fields.
+
+\end{document}
